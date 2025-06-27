@@ -1,0 +1,32 @@
+/* Make two columns */
+.app-container {
+  display: flex;
+  height: 100vh; /* full viewport height (optional) */
+  margin: 0;
+}
+
+/* Sidebar styling */
+.sidebar {
+  width: 240px;           /* fixed sidebar width */
+  background: #f5f5f5;    /* light gray bg */
+  padding: 1rem;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+  overflow-y: auto;       /* scroll if too tall */
+}
+
+/* Main content area */
+.content {
+  flex: 1;                /* take up remaining space */
+  padding: 2rem;
+}
+
+/* Style your lists */
+.sidebar ul {
+  list-style-type: disc;  /* bullet style */
+  margin: 0.5rem 0 1.5rem 1rem; /* spacing */
+}
+
+.sidebar h2 {
+  margin-top: 1.5rem;
+  font-size: 1.25rem;
+}

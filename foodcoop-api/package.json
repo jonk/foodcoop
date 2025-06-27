@@ -1,0 +1,31 @@
+{
+  "name": "foodcoop-api",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "food-coop",
+    "shifts",
+    "notifications",
+    "api"
+  ],
+  "author": "",
+  "license": "ISC",
+  "description": "API server for Food Coop shift notifications",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.15.6",
+    "prisma": "^6.7.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
