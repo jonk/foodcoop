@@ -1,12 +1,11 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const prisma = require('../lib/prisma');
+const { authenticateToken } = require('../middleware/auth');
 
 // Create router instance
 const router = express.Router();
-
-// Mock user database - replace with Prisma later
-const users = [];
 
 /**
  * POST /api/auth/register
@@ -25,7 +24,10 @@ router.post('/register', async (req, res) => {
     }
 
     // Check if user already exists
-    const existingUser = users.find(user => user.email === email);
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    });
+
     if (existingUser) {
       return res.status(409).json({ 
         error: 'User with this email already exists' 
@@ -33,24 +35,33 @@ router.post('/register', async (req, res) => {
     }
 
     // Hash the password (never store plain text passwords!)
-    const saltRounds = 10; // Number of salt rounds for bcrypt
+    const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Create new user
-    const newUser = {
-      id: users.length + 1, // Simple ID generation - use UUID in production
-      email,
-      name,
-      password: hashedPassword,
-      createdAt: new Date()
-    };
-
-    users.push(newUser);
+    // Create new user with default settings
+    const newUser = await prisma.user.create({
+      data: {
+        email,
+        name,
+        password: hashedPassword,
+        notificationEmail: email, // Default to same email
+        settings: {
+          create: {
+            emailNotifications: true,
+            checkFrequency: '5min',
+            timezone: 'America/New_York'
+          }
+        }
+      },
+      include: {
+        settings: true
+      }
+    });
 
     // Generate JWT token
     const token = jwt.sign(
       { userId: newUser.id, email: newUser.email },
-      process.env.JWT_SECRET || 'your-secret-key', // Use environment variable in production
+      process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
     );
 
@@ -85,10 +96,23 @@ router.post('/login', async (req, res) => {
     }
 
     // Find user by email
-    const user = users.find(user => user.email === email);
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: {
+        settings: true
+      }
+    });
+
     if (!user) {
       return res.status(401).json({ 
         error: 'Invalid email or password' 
+      });
+    }
+
+    // Check if user is active
+    if (!user.isActive) {
+      return res.status(401).json({ 
+        error: 'Account is deactivated' 
       });
     }
 
@@ -135,39 +159,30 @@ router.post('/logout', (req, res) => {
  * GET /api/auth/me
  * Get current user profile (requires authentication)
  */
-router.get('/me', authenticateToken, (req, res) => {
-  // req.user is set by the authenticateToken middleware
-  const user = users.find(u => u.id === req.user.userId);
-  
-  if (!user) {
-    return res.status(404).json({ error: 'User not found' });
-  }
-
-  const { password: _, ...userWithoutPassword } = user;
-  res.json({ user: userWithoutPassword });
-});
-
-/**
- * Middleware to authenticate JWT tokens
- * Use this on routes that require authentication
- */
-function authenticateToken(req, res, next) {
-  // Get token from Authorization header
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // "Bearer TOKEN"
-
-  if (!token) {
-    return res.status(401).json({ error: 'Access token required' });
-  }
-
+router.get('/me', authenticateToken, async (req, res) => {
   try {
-    // Verify the token
-    const user = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    req.user = user; // Add user info to request object
-    next();
+    // req.user is set by the authenticateToken middleware
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      include: {
+        settings: true,
+        shiftPreferences: {
+          where: { isActive: true }
+        }
+      }
+    });
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Don't return sensitive information like password
+    const { password: _, ...userWithoutPassword } = user;
+    res.json({ user: userWithoutPassword });
   } catch (error) {
-    return res.status(403).json({ error: 'Invalid or expired token' });
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ error: 'Failed to fetch user profile' });
   }
-}
+});
 
 module.exports = router; 

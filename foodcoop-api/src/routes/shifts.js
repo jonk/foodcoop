@@ -1,20 +1,28 @@
 const express = require('express');
-const router = express.Router();
+const { authenticateToken } = require('../middleware/auth');
+const prisma = require('../lib/prisma');
 
-// Mock data - replace with Prisma database later
-const shiftPreferences = [];
+const router = express.Router();
 
 /**
  * GET /api/shifts/preferences
  * Get all shift preferences for the authenticated user
  * Requires authentication
  */
-router.get('/preferences', authenticateToken, (req, res) => {
+router.get('/preferences', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
     
-    // Filter preferences for the current user
-    const userPreferences = shiftPreferences.filter(pref => pref.userId === userId);
+    // Get preferences for the current user
+    const userPreferences = await prisma.shiftPreference.findMany({
+      where: { 
+        userId,
+        isActive: true 
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
     
     res.json({
       preferences: userPreferences
@@ -28,18 +36,18 @@ router.get('/preferences', authenticateToken, (req, res) => {
 /**
  * POST /api/shifts/preferences
  * Create a new shift preference
- * Body: { shiftType, days, timeRange, notificationEmail }
+ * Body: { shiftType, days, timeRangeStart, timeRangeEnd, notificationEmail? }
  * Requires authentication
  */
-router.post('/preferences', authenticateToken, (req, res) => {
+router.post('/preferences', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { shiftType, days, timeRange, notificationEmail } = req.body;
+    const { shiftType, days, timeRangeStart, timeRangeEnd, notificationEmail } = req.body;
 
     // Validate required fields
-    if (!shiftType || !days || !timeRange || !notificationEmail) {
+    if (!shiftType || !days || !timeRangeStart || !timeRangeEnd) {
       return res.status(400).json({
-        error: 'shiftType, days, timeRange, and notificationEmail are required'
+        error: 'shiftType, days, timeRangeStart, and timeRangeEnd are required'
       });
     }
 
@@ -50,27 +58,28 @@ router.post('/preferences', authenticateToken, (req, res) => {
       });
     }
 
-    // Validate time range
-    if (!timeRange.start || !timeRange.end) {
-      return res.status(400).json({
-        error: 'timeRange must have start and end times'
+    // Get user's default notification email if not provided
+    let emailToUse = notificationEmail;
+    if (!emailToUse) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { notificationEmail: true }
       });
+      emailToUse = user.notificationEmail;
     }
 
     // Create new preference
-    const newPreference = {
-      id: shiftPreferences.length + 1,
-      userId,
-      shiftType,
-      days,
-      timeRange,
-      notificationEmail,
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    shiftPreferences.push(newPreference);
+    const newPreference = await prisma.shiftPreference.create({
+      data: {
+        userId,
+        shiftType,
+        days,
+        timeRangeStart,
+        timeRangeEnd,
+        notificationEmail: emailToUse,
+        isActive: true
+      }
+    });
 
     res.status(201).json({
       message: 'Shift preference created successfully',
@@ -86,32 +95,32 @@ router.post('/preferences', authenticateToken, (req, res) => {
 /**
  * PUT /api/shifts/preferences/:id
  * Update an existing shift preference
- * Body: { shiftType?, days?, timeRange?, notificationEmail?, isActive? }
+ * Body: { shiftType?, days?, timeRangeStart?, timeRangeEnd?, notificationEmail?, isActive? }
  * Requires authentication
  */
-router.put('/preferences/:id', authenticateToken, (req, res) => {
+router.put('/preferences/:id', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
     const preferenceId = parseInt(req.params.id);
     const updates = req.body;
 
-    // Find the preference
-    const preferenceIndex = shiftPreferences.findIndex(
-      pref => pref.id === preferenceId && pref.userId === userId
-    );
+    // Find the preference and verify ownership
+    const existingPreference = await prisma.shiftPreference.findFirst({
+      where: {
+        id: preferenceId,
+        userId
+      }
+    });
 
-    if (preferenceIndex === -1) {
+    if (!existingPreference) {
       return res.status(404).json({ error: 'Shift preference not found' });
     }
 
     // Update the preference
-    const updatedPreference = {
-      ...shiftPreferences[preferenceIndex],
-      ...updates,
-      updatedAt: new Date()
-    };
-
-    shiftPreferences[preferenceIndex] = updatedPreference;
+    const updatedPreference = await prisma.shiftPreference.update({
+      where: { id: preferenceId },
+      data: updates
+    });
 
     res.json({
       message: 'Shift preference updated successfully',
@@ -129,21 +138,27 @@ router.put('/preferences/:id', authenticateToken, (req, res) => {
  * Delete a shift preference
  * Requires authentication
  */
-router.delete('/preferences/:id', authenticateToken, (req, res) => {
+router.delete('/preferences/:id', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
     const preferenceId = parseInt(req.params.id);
 
-    // Find and remove the preference
-    const preferenceIndex = shiftPreferences.findIndex(
-      pref => pref.id === preferenceId && pref.userId === userId
-    );
+    // Find and verify ownership
+    const existingPreference = await prisma.shiftPreference.findFirst({
+      where: {
+        id: preferenceId,
+        userId
+      }
+    });
 
-    if (preferenceIndex === -1) {
+    if (!existingPreference) {
       return res.status(404).json({ error: 'Shift preference not found' });
     }
 
-    const deletedPreference = shiftPreferences.splice(preferenceIndex, 1)[0];
+    // Delete the preference
+    const deletedPreference = await prisma.shiftPreference.delete({
+      where: { id: preferenceId }
+    });
 
     res.json({
       message: 'Shift preference deleted successfully',
@@ -161,33 +176,24 @@ router.delete('/preferences/:id', authenticateToken, (req, res) => {
  * Get currently available shifts (this would integrate with your Python script)
  * Requires authentication
  */
-router.get('/available', authenticateToken, (req, res) => {
+router.get('/available', authenticateToken, async (req, res) => {
   try {
-    // This endpoint would integrate with your shift_checker.py script
-    // For now, return mock data
-    const mockAvailableShifts = [
-      {
-        id: 1,
-        shiftType: 'STOCKING',
-        day: 'Monday',
-        date: '2024-01-15',
-        time: '5:00 PM - 10:00 PM',
-        location: 'Main Floor',
-        available: true
+    // Get recent available shifts from database
+    const availableShifts = await prisma.availableShift.findMany({
+      where: {
+        isAvailable: true,
+        expiresAt: {
+          gte: new Date() // Only show shifts that haven't expired
+        }
       },
-      {
-        id: 2,
-        shiftType: 'DAIRY_LIFTING',
-        day: 'Wednesday',
-        date: '2024-01-17',
-        time: '8:00 AM - 12:00 PM',
-        location: 'Dairy Section',
-        available: true
-      }
-    ];
+      orderBy: {
+        foundAt: 'desc'
+      },
+      take: 50 // Limit to 50 most recent
+    });
 
     res.json({
-      availableShifts: mockAvailableShifts,
+      availableShifts,
       lastChecked: new Date().toISOString()
     });
 
@@ -202,10 +208,20 @@ router.get('/available', authenticateToken, (req, res) => {
  * Manually trigger a shift check (for testing)
  * Requires authentication
  */
-router.post('/check', authenticateToken, (req, res) => {
+router.post('/check', authenticateToken, async (req, res) => {
   try {
     // This would trigger your Python shift checker script
     // For now, just return a success message
+    
+    // Log the action
+    await prisma.auditLog.create({
+      data: {
+        action: 'MANUAL_SHIFT_CHECK',
+        userId: req.user.userId,
+        details: { triggeredBy: 'API' }
+      }
+    });
+
     res.json({
       message: 'Shift check triggered successfully',
       timestamp: new Date().toISOString()
@@ -216,27 +232,5 @@ router.post('/check', authenticateToken, (req, res) => {
     res.status(500).json({ error: 'Failed to trigger shift check' });
   }
 });
-
-/**
- * Middleware to authenticate JWT tokens
- * Import this from auth.js in a real implementation
- */
-function authenticateToken(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ error: 'Access token required' });
-  }
-
-  try {
-    const jwt = require('jsonwebtoken');
-    const user = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    req.user = user;
-    next();
-  } catch (error) {
-    return res.status(403).json({ error: 'Invalid or expired token' });
-  }
-}
 
 module.exports = router; 
