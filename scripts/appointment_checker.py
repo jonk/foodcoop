@@ -7,7 +7,7 @@ def check_appointments():
     url = f"{base_url}{today}"
 
     cookies = {
-        'sessionid': '3z02tkfw0s6wli2gzf607yjrnxy8ysi7'
+        'sessionid': ''
     }
     
     # The target string to look for
