@@ -44,6 +44,17 @@ function Dashboard() {
   // Form visibility states
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [showCoopForm, setShowCoopForm] = useState(false);
+  
+  // Add preference modal state
+  const [showAddPreferenceModal, setShowAddPreferenceModal] = useState(false);
+  const [isAddingPreference, setIsAddingPreference] = useState(false);
+  const [newPreference, setNewPreference] = useState({
+    shiftType: '',
+    days: [] as string[],
+    timeRangeStart: '',
+    timeRangeEnd: '',
+    notificationEmail: ''
+  });
 
   useEffect(() => {
     // Check if user is logged in
@@ -169,10 +180,98 @@ function Dashboard() {
     }
   };
 
+  const handleAddPreference = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsAddingPreference(true);
+    setMessage(null);
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3000/api/shifts/preferences', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          shiftType: newPreference.shiftType,
+          days: newPreference.days,
+          timeRangeStart: newPreference.timeRangeStart,
+          timeRangeEnd: newPreference.timeRangeEnd,
+          notificationEmail: newPreference.notificationEmail || user?.notificationEmail
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Shift preference added successfully' });
+        setShowAddPreferenceModal(false);
+        setNewPreference({
+          shiftType: '',
+          days: [],
+          timeRangeStart: '',
+          timeRangeEnd: '',
+          notificationEmail: ''
+        });
+        // Refresh preferences
+        fetchUserData();
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to add shift preference' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to add shift preference' });
+    } finally {
+      setIsAddingPreference(false);
+    }
+  };
+
+  const handleDeletePreference = async (preferenceId: number) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3000/api/shifts/preferences/${preferenceId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Shift preference deleted successfully' });
+        fetchUserData();
+      } else {
+        setMessage({ type: 'error', text: 'Failed to delete shift preference' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to delete shift preference' });
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/login');
+  };
+
+  const handleDayToggle = (day: string) => {
+    setNewPreference(prev => ({
+      ...prev,
+      days: prev.days.includes(day)
+        ? prev.days.filter(d => d !== day)
+        : [...prev.days, day]
+    }));
+  };
+
+  const openAddPreferenceModal = () => {
+    setShowAddPreferenceModal(true);
+    setNewPreference({
+      shiftType: '',
+      days: [],
+      timeRangeStart: '',
+      timeRangeEnd: '',
+      notificationEmail: user?.notificationEmail || ''
+    });
   };
 
   const formatTime = (time: string) => {
@@ -356,7 +455,7 @@ function Dashboard() {
         <div className="preferences-section">
           <div className="preferences-header">
             <h2>Your Shift Preferences</h2>
-            <button className="add-preference-button">
+            <button className="add-preference-button" onClick={openAddPreferenceModal}>
               Add Preference
             </button>
           </div>
@@ -365,7 +464,7 @@ function Dashboard() {
             <div className="empty-state">
               <h3>No shift preferences yet</h3>
               <p>Add your first shift preference to start receiving notifications</p>
-              <button className="add-preference-button">
+              <button className="add-preference-button" onClick={openAddPreferenceModal}>
                 Add Your First Preference
               </button>
             </div>
@@ -376,10 +475,7 @@ function Dashboard() {
                   <div className="preference-header">
                     <h3 className="preference-title">{preference.shiftType}</h3>
                     <div className="preference-actions">
-                      <button className="action-button" title="Edit">
-                        ✏️
-                      </button>
-                      <button className="action-button" title="Delete">
+                      <button className="action-button" title="Delete" onClick={() => handleDeletePreference(preference.id)}>
                         🗑️
                       </button>
                     </div>
@@ -412,6 +508,160 @@ function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* Add Preference Modal */}
+      {showAddPreferenceModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h2>Add Shift Preference</h2>
+              <button 
+                className="modal-close"
+                onClick={() => setShowAddPreferenceModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            
+            <form onSubmit={handleAddPreference} className="modal-form">
+              <div className="form-group">
+                <label htmlFor="shiftType">Shift Type</label>
+                <select
+                  id="shiftType"
+                  value={newPreference.shiftType}
+                  onChange={(e) => setNewPreference(prev => ({ ...prev, shiftType: e.target.value }))}
+                  required
+                  disabled={isAddingPreference}
+                >
+                  <option value="">Select a shift type</option>
+                  <option>-- All committees' --</option>
+                  <option>🥕 Carrot 🥕</option>
+                  <option>Receiving: Lifting 🚚</option>
+                  <option>Receiving: Stocking 📦</option>
+                  <option>Bathroom Cleaning Plus 🚽</option>
+                  <option>Cart Return and Sidewalk Maintenance 🛒</option>
+                  <option>Case Maintenance 🧽</option>
+                  <option>** Cash Drawer Counting 💰</option>
+                  <option>** Cashier 💵</option>
+                  <option>Checkout 💳</option>
+                  <option>CHIPS Food Drive 🍛</option>
+                  <option>Cleaning Bulk Bins 🧼</option>
+                  <option>Cleaning 🏝</option>
+                  <option>** Enrollment Data Entry and Photo Processing ⌨️</option>
+                  <option>Entrance Desk 🎟</option>
+                  <option>Flex Worker 🥫</option>
+                  <option>Food Processing: Bulk Packaging & Stocking 🍿</option>
+                  <option>** Food Processing: Bulk Team Leader 🍿</option>
+                  <option>Food Processing: Cheese & Olive Packaging 🧀</option>
+                  <option>** Food Processing: Cheese & Olive Team Leader 🧀</option>
+                  <option>** Front End Support 👀</option>
+                  <option>General Meeting for workslot credit 🗳️</option>
+                  <option>Inventory 📋</option>
+                  <option>** Inventory: Data entry 🖥</option>
+                  <option>Inventory: Produce 🍀</option>
+                  <option>** Morning Set-up & Equipment Cleaning 🧺</option>
+                  <option>** New Member Enrollment 📃</option>
+                  <option>Office 📗</option>
+                  <option>** Receiving: Beer Stocking 🍺</option>
+                  <option>Receiving: Bread Stocking 🍞</option>
+                  <option>Receiving: Bulk Lifting 🫘</option>
+                  <option>Receiving: Dairy Lifting 🥛</option>
+                  <option>Receiving: Health and Beauty Support 🧴</option>
+                  <option>Receiving: Meat Processing and Lifting 🍖</option>
+                  <option>Receiving: Produce Lifting and Stocking 🥦</option>
+                  <option>Receiving: Produce Processing 🥬</option>
+                  <option>** Receiving: Team Leader 📦</option>
+                  <option>Receiving: Turkey Runner 🦃</option>
+                  <option>Receiving: Vitamins 🍬</option>
+                  <option>Repairs 🛠</option>
+                  <option>** Scanning Invoices 🖨</option>
+                  <option>Sorting and Collating Documents 🗂</option>
+                  <option>Soup Kitchen Volunteer Appreciation Event 🎉</option>
+                  <option>Soup Kitchen: Deep-Cleaning</option>
+                  <option>Soup Kitchen: Food Services 🍲</option>
+                  <option>Soup Kitchen: Guest Services ✍️</option>
+                  <option>Soup Kitchen: Reception 🙂</option>
+                  <option>Special Project: Data Entry</option>
+                  <option>Voucher Processing 🧾</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Days of the Week</label>
+                <div className="days-grid">
+                  {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+                    <label key={day} className="day-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={newPreference.days.includes(day)}
+                        onChange={() => handleDayToggle(day)}
+                        disabled={isAddingPreference}
+                      />
+                      <span>{day.slice(0, 3)}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="timeRangeStart">Start Time</label>
+                  <input
+                    type="time"
+                    id="timeRangeStart"
+                    value={newPreference.timeRangeStart}
+                    onChange={(e) => setNewPreference(prev => ({ ...prev, timeRangeStart: e.target.value }))}
+                    required
+                    disabled={isAddingPreference}
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="timeRangeEnd">End Time</label>
+                  <input
+                    type="time"
+                    id="timeRangeEnd"
+                    value={newPreference.timeRangeEnd}
+                    onChange={(e) => setNewPreference(prev => ({ ...prev, timeRangeEnd: e.target.value }))}
+                    required
+                    disabled={isAddingPreference}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="notificationEmail">Notification Email (optional)</label>
+                <input
+                  type="email"
+                  id="notificationEmail"
+                  value={newPreference.notificationEmail}
+                  onChange={(e) => setNewPreference(prev => ({ ...prev, notificationEmail: e.target.value }))}
+                  placeholder={user?.notificationEmail || 'your-email@example.com'}
+                  disabled={isAddingPreference}
+                />
+                <small>Leave empty to use your default notification email</small>
+              </div>
+
+              <div className="modal-actions">
+                <button 
+                  type="submit" 
+                  className="settings-button"
+                  disabled={isAddingPreference || newPreference.days.length === 0}
+                >
+                  {isAddingPreference ? 'Adding...' : 'Add Preference'}
+                </button>
+                <button 
+                  type="button" 
+                  className="cancel-button"
+                  onClick={() => setShowAddPreferenceModal(false)}
+                  disabled={isAddingPreference}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
