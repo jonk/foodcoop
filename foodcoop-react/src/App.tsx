@@ -1,22 +1,20 @@
-import { useState } from 'react'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css'
+import Login from './components/login'
+import Register from './components/Register'
+import Dashboard from './components/Dashboard'
 
 function App() {
 
   return (
-    <div className="app-container">
-      <aside className="sidebar">
-        <h2>Settings</h2>
-        <p>Notifications are going to jonk1993@gmail.com</p>
-        <button>Logout</button>
-      </aside>
-
-      <main className="content">
-        <h1>Food Coop Checker</h1>
-        <button>Add Shift</button>
-
-      </main>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+      </Routes>
+    </Router>
   );
 }
 
