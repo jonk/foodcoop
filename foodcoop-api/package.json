@@ -5,6 +5,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
+    "scheduler": "node scheduler.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -18,7 +19,9 @@
   "description": "API server for Food Coop shift notifications",
   "dependencies": {
     "@prisma/client": "^6.10.1",
+    "axios": "^1.10.0",
     "bcrypt": "^5.1.1",
+    "cheerio": "^1.1.0",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",

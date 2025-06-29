@@ -248,6 +248,40 @@ function Dashboard() {
     }
   };
 
+  const handleCheckShifts = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3000/api/shifts/check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          coopPassword: coopForm.password // Use the password from the coop form
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        if (data.results && data.results.length > 0) {
+          const shiftCount = data.results.reduce((total: number, result: any) => total + result.availableShifts.length, 0);
+          setMessage({ 
+            type: 'success', 
+            text: `Found ${shiftCount} available shifts! Check your email for details.` 
+          });
+        } else {
+          setMessage({ type: 'success', text: 'No available shifts found for your preferences.' });
+        }
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to check shifts' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to check shifts' });
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -455,9 +489,14 @@ function Dashboard() {
         <div className="preferences-section">
           <div className="preferences-header">
             <h2>Your Shift Preferences</h2>
-            <button className="add-preference-button" onClick={openAddPreferenceModal}>
-              Add Preference
-            </button>
+            <div className="preferences-actions">
+              <button className="check-shifts-button" onClick={handleCheckShifts}>
+                Check for Shifts
+              </button>
+              <button className="add-preference-button" onClick={openAddPreferenceModal}>
+                Add Preference
+              </button>
+            </div>
           </div>
 
           {preferences.length === 0 ? (

@@ -1,71 +1,135 @@
-# Food Coop API Server
+# Food Coop API
 
-Express.js API server for managing Food Coop shift notifications.
+API server for Food Coop shift notifications and user management.
 
 ## Features
 
-- 🔐 JWT-based authentication
-- 👤 User management and profiles
-- ⏰ Shift preference management
-- 📧 Email notification system
-- 🔄 Integration with Python shift checker
+- User authentication and registration
+- Shift preference management
+- Automated shift checking
+- Email notifications
+- Audit logging
 
-## Quick Start
+## Setup
 
-### 1. Install Dependencies
-
+1. Install dependencies:
 ```bash
-cd foodcoop-api
 npm install
 ```
 
-### 2. Environment Setup
-
-Copy the example environment file and configure it:
-
-```bash
-cp env.example .env
+2. Set up environment variables in `.env`:
+```env
+DATABASE_URL="postgresql://username:password@localhost:5432/foodcoop"
+JWT_SECRET="your-super-secret-jwt-key"
+PORT=3000
 ```
 
-Edit `.env` with your configuration:
-- Set a strong `JWT_SECRET`
-- Configure your email settings
-- Set your frontend URL
+3. Set up the database:
+```bash
+npx prisma migrate dev
+npx prisma generate
+```
 
-### 3. Start Development Server
-
+4. Start the server:
 ```bash
 npm run dev
 ```
 
-The server will start on `http://localhost:3000`
+## Shift Checking Integration
+
+The API now includes integrated shift checking functionality that replaces the Python script approach:
+
+### Manual Shift Checking
+
+Users can manually check for shifts through the React frontend using the "Check for Shifts" button.
+
+### Automated Shift Checking
+
+For automated checking, you have several options:
+
+#### Option 1: Using the Scheduler Script
+
+Run the included scheduler script:
+```bash
+npm run scheduler
+```
+
+#### Option 2: Cron Job
+
+Set up a cron job to call the API endpoint:
+```bash
+# Check every 5 minutes
+*/5 * * * * curl -X POST http://localhost:3000/api/shifts/check-all
+```
+
+#### Option 3: Process Manager (PM2)
+
+Use PM2 to run the scheduler continuously:
+```bash
+npm install -g pm2
+pm2 start scheduler.js --name "shift-checker" --cron "*/5 * * * *"
+```
+
+### Environment Variables for Shift Checking
+
+Add these to your `.env` file for automated checking:
+
+```env
+# Default coop password (for testing)
+DEFAULT_COOP_PASSWORD="your-coop-password"
+
+# Or individual user passwords
+COOP_PASSWORD_1="user1-password"
+COOP_PASSWORD_2="user2-password"
+```
+
+**Note**: In production, you should use a more secure method for storing passwords, such as encrypted environment variables or a secure key management system.
 
 ## API Endpoints
 
 ### Authentication
-
 - `POST /api/auth/register` - Register new user
 - `POST /api/auth/login` - Login user
-- `POST /api/auth/logout` - Logout user
-- `GET /api/auth/me` - Get current user profile
+- `GET /api/auth/me` - Get current user info
 
-### Shift Management
+### Shift Preferences
+- `GET /api/shifts/preferences` - Get user preferences
+- `POST /api/shifts/preferences` - Create new preference
+- `PUT /api/shifts/preferences/:id` - Update preference
+- `DELETE /api/shifts/preferences/:id` - Delete preference
 
-- `GET /api/shifts/preferences` - Get user's shift preferences
-- `POST /api/shifts/preferences` - Create new shift preference
-- `PUT /api/shifts/preferences/:id` - Update shift preference
-- `DELETE /api/shifts/preferences/:id` - Delete shift preference
-- `GET /api/shifts/available` - Get available shifts
-- `POST /api/shifts/check` - Trigger shift check
+### Shift Checking
+- `POST /api/shifts/check` - Check shifts for current user
+- `POST /api/shifts/check-all` - Check shifts for all users (automated)
 
 ### User Management
-
-- `GET /api/users/profile` - Get user profile
 - `PUT /api/users/profile` - Update user profile
-- `GET /api/users/settings` - Get user settings
-- `PUT /api/users/settings` - Update user settings
 - `POST /api/users/change-password` - Change password
-- `DELETE /api/users/account` - Delete account
+
+## Migration from Python Script
+
+The new Express-based shift checking provides several advantages:
+
+1. **Integrated with user preferences** - No need to manually configure shift types
+2. **Database-driven** - All preferences stored and managed through the API
+3. **Multi-user support** - Can check shifts for multiple users automatically
+4. **Better error handling** - Consistent error handling and logging
+5. **Real-time notifications** - Can trigger notifications immediately when shifts are found
+
+To migrate from your Python script:
+
+1. Set up user accounts and preferences through the React frontend
+2. Configure passwords in environment variables
+3. Set up automated checking using one of the methods above
+4. The Python script can be retired once the new system is working
+
+## Security Considerations
+
+- Passwords should be stored securely (encrypted environment variables or key management)
+- Consider rate limiting for shift checking endpoints
+- Implement proper logging and monitoring
+- Use HTTPS in production
+- Regularly rotate JWT secrets
 
 ## Development
 
