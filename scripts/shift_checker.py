@@ -8,17 +8,64 @@ from email.mime.text import MIMEText
 import schedule
 import time
 import json
+import sys
 
 # Global flag to avoid sending duplicate alerts.
 LAST_ALERT_TRIGGERED = False
 
 SHIFT_MAPPING = {
-    "GENERAL_MEETING_WORKSLOT": 159,
-    "STOCKING": 5
+    "-- All committees' --": 0,
+    "🥕 Carrot 🥕": 7,
+    "Receiving: Lifting 🚚": 2,
+    "Receiving: Stocking 📦": 5,
+    "Bathroom Cleaning Plus 🚽": 110,
+    "Cart Return and Sidewalk Maintenance 🛒": 4,
+    "Case Maintenance 🧽": 1,
+    "** Cash Drawer Counting 💰": 114,
+    "** Cashier 💵": 38,
+    "Checkout 💳": 58,
+    "CHIPS Food Drive 🍛": 142,
+    "Cleaning Bulk Bins 🧼": 126,
+    "Cleaning 🏝": 78,
+    "** Enrollment Data Entry and Photo Processing ⌨️": 134,
+    "Entrance Desk 🎟": 54,
+    "Flex Worker 🥫": 56,
+    "Food Processing: Bulk Packaging & Stocking 🍿": 48,
+    "** Food Processing: Bulk Team Leader 🍿": 146,
+    "Food Processing: Cheese & Olive Packaging 🧀": 94,
+    "** Food Processing: Cheese & Olive Team Leader 🧀": 130,
+    "** Front End Support 👀": 64,
+    "General Meeting for workslot credit 🗳️": 159,
+    "Inventory 📋": 6,
+    "** Inventory: Data entry 🖥": 50,
+    "Inventory: Produce 🍀": 72,
+    "** Morning Set-up & Equipment Cleaning 🧺": 40,
+    "** New Member Enrollment 📃": 106,
+    "Office 📗": 62,
+    "** Receiving: Beer Stocking 🍺": 44,
+    "Receiving: Bread Stocking 🍞": 74,
+    "Receiving: Bulk Lifting 🫘": 174,
+    "Receiving: Dairy Lifting 🥛": 172,
+    "Receiving: Health and Beauty Support 🧴": 102,
+    "Receiving: Meat Processing and Lifting 🍖": 42,
+    "Receiving: Produce Lifting and Stocking 🥦": 150,
+    "Receiving: Produce Processing 🥬": 90,
+    "** Receiving: Team Leader 📦": 157,
+    "Receiving: Turkey Runner 🦃": 98,
+    "Receiving: Vitamins 🍬": 46,
+    "Repairs 🛠": 52,
+    "** Scanning Invoices 🖨": 3,
+    "Sorting and Collating Documents 🗂": 68,
+    "Soup Kitchen Volunteer Appreciation Event 🎉": 169,
+    "Soup Kitchen: Deep-Cleaning": 152,
+    "Soup Kitchen: Food Services 🍲": 86,
+    "Soup Kitchen: Guest Services ✍️": 165,
+    "Soup Kitchen: Reception 🙂": 154,
+    "Special Project: Data Entry": 171,
+    "Voucher Processing 🧾": 122
 }
 
 def login(session, user, pw):
-
     # First we gotta find the CSRF token + cookie
     login_url = "https://members.foodcoop.com/services/login/"
     session.get(login_url)
@@ -34,6 +81,8 @@ def login(session, user, pw):
         "Referer": "https://members.foodcoop.com/services/login/",
         "X-CSRFToken": csrf_token
     }
+
+    print(login_data)
 
     # Get the session loaded
     session.post(login_url, data=login_data, headers=headers)
@@ -154,14 +203,35 @@ def check_shifts(session, login_data, headers, shift_to_check):
             print("Alert condition cleared.")
         LAST_ALERT_TRIGGERED = False
 
+    return shifts_by_day
+
+def check_shifts_once(username, password, shift_type):
+    """
+    Check shifts once and return the results as JSON.
+    This function is designed to be called from Node.js.
+    """
+    session = requests.Session()
+    data, headers = login(session, username, password)
+    results = check_shifts(session, data, headers, shift_type)
+    
+    # Print JSON result to stdout for Node.js to capture
+    print(json.dumps(results))
+    return results
 
 def main():
     parser = argparse.ArgumentParser(description="Check co-op shifts")
     parser.add_argument("username", help="Coop username")
     parser.add_argument("pw", help="Coop password")
     parser.add_argument("--shift", help="which shift to check for")
+    parser.add_argument("--once", action="store_true", help="check once and exit")
     args = parser.parse_args()
 
+    if args.once:
+        # Single check mode for Node.js integration
+        check_shifts_once(args.username, args.pw, args.shift)
+        return
+
+    # Continuous monitoring mode (original behavior)
     session = requests.Session()
     data, headers = login(session, args.username, args.pw)
 

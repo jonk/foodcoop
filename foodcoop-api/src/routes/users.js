@@ -43,19 +43,20 @@ router.get('/profile', authenticateToken, async (req, res) => {
 /**
  * PUT /api/users/profile
  * Update current user's profile
- * Body: { name?, notificationEmail?, foodCoopUsername? }
+ * Body: { name?, notificationEmail?, coopUsername?, coopPassword? }
  * Requires authentication
  */
 router.put('/profile', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { name, notificationEmail, foodCoopUsername } = req.body;
+    const { name, notificationEmail, coopUsername, coopPassword } = req.body;
     
     // Build update data object (only include provided fields)
     const updateData = {};
     if (name !== undefined) updateData.name = name;
     if (notificationEmail !== undefined) updateData.notificationEmail = notificationEmail;
-    if (foodCoopUsername !== undefined) updateData.foodCoopUsername = foodCoopUsername;
+    if (coopUsername !== undefined) updateData.coopUsername = coopUsername;
+    if (coopPassword !== undefined) updateData.coopPassword = coopPassword;
 
     // Update user
     const updatedUser = await prisma.user.update({
@@ -67,7 +68,7 @@ router.put('/profile', authenticateToken, async (req, res) => {
     });
 
     // Don't return sensitive information
-    const { password: _, ...userProfile } = updatedUser;
+    const { password: _, coopPassword: __, ...userProfile } = updatedUser;
     
     res.json({
       message: 'Profile updated successfully',

@@ -18,7 +18,8 @@ interface User {
   name: string;
   email: string;
   notificationEmail: string;
-  foodCoopUsername?: string;
+  coopUsername?: string;
+  coopPassword?: string;
 }
 
 function Dashboard() {
@@ -90,7 +91,7 @@ function Dashboard() {
       if (userResponse.ok) {
         const userData = await userResponse.json();
         setUser(userData.user);
-        setCoopForm(prev => ({ ...prev, username: userData.user.foodCoopUsername || '' }));
+        setCoopForm(prev => ({ ...prev, username: userData.user.coopUsername || '' }));
       }
 
       if (preferencesResponse.ok) {
@@ -160,7 +161,8 @@ function Dashboard() {
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          foodCoopUsername: coopForm.username
+          coopUsername: coopForm.username,
+          coopPassword: coopForm.password
         })
       });
 
@@ -168,7 +170,7 @@ function Dashboard() {
 
       if (response.ok) {
         setMessage({ type: 'success', text: 'Coop credentials updated successfully' });
-        setUser(prev => prev ? { ...prev, foodCoopUsername: coopForm.username } : null);
+        setUser(prev => prev ? { ...prev, coopUsername: coopForm.username, coopPassword: coopForm.password } : null);
         setShowCoopForm(false);
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to update coop credentials' });
@@ -251,22 +253,25 @@ function Dashboard() {
   const handleCheckShifts = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/shifts/check', {
-        method: 'POST',
+      const response = await fetch('http://localhost:3000/api/shifts/available', {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          coopPassword: coopForm.password // Use the password from the coop form
-        })
+        }
       });
 
       const data = await response.json();
 
       if (response.ok) {
         if (data.results && data.results.length > 0) {
-          const shiftCount = data.results.reduce((total: number, result: any) => total + result.availableShifts.length, 0);
+          const shiftCount = data.results.reduce((total: number, result: any) => {
+            // Count shifts across all days
+            return total + result.availableShifts.reduce((dayTotal: number, day: any) => {
+              return dayTotal + (day.shifts ? day.shifts.length : 0);
+            }, 0);
+          }, 0);
+          
           setMessage({ 
             type: 'success', 
             text: `Found ${shiftCount} available shifts! Check your email for details.` 
@@ -278,7 +283,8 @@ function Dashboard() {
         setMessage({ type: 'error', text: data.error || 'Failed to check shifts' });
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to check shifts' });
+      console.error('Error checking shifts:', error);
+      setMessage({ type: 'error', text: 'Failed to check shifts. Please try again.' });
     }
   };
 

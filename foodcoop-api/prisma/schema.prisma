@@ -21,7 +21,8 @@ model User {
   name              String
   password          String             // Hashed password
   notificationEmail String             // Email for receiving notifications
-  foodCoopUsername  String?            // Optional: Food coop website username
+  coopUsername      String?            // Optional: Food coop website username
+  coopPassword      String?            // Optional: Food coop website password (encrypted)
   isActive          Boolean            @default(true)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
