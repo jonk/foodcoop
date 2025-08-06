@@ -253,7 +253,7 @@ function Dashboard() {
   const handleCheckShifts = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/shifts/available', {
+      const response = await fetch('http://localhost:3000/api/shifts/check-shifts', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -264,17 +264,15 @@ function Dashboard() {
       const data = await response.json();
 
       if (response.ok) {
-        if (data.results && data.results.length > 0) {
-          const shiftCount = data.results.reduce((total: number, result: any) => {
-            // Count shifts across all days
-            return total + result.availableShifts.reduce((dayTotal: number, day: any) => {
-              return dayTotal + (day.shifts ? day.shifts.length : 0);
-            }, 0);
-          }, 0);
+        console.log(data.shifts);
+        if (data.shifts && data.shifts.length > 0) {
+          const totalShifts = data.shifts
+            .map((day: any) => day.shifts.length)
+            .reduce((sum: number, count: number) => sum + count, 0)
           
           setMessage({ 
             type: 'success', 
-            text: `Found ${shiftCount} available shifts! Check your email for details.` 
+            text: `Found ${totalShifts} available shifts! Check your email for details.` 
           });
         } else {
           setMessage({ type: 'success', text: 'No available shifts found for your preferences.' });

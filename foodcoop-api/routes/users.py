@@ -11,7 +11,7 @@ users_bp = Blueprint('users', __name__)
 def get_user_profile():
     """Get current user's profile"""
     try:
-        current_user_id = get_jwt_identity()['user_id']
+        current_user_id = int(get_jwt_identity())
         
         # Find user by ID with related data
         user = User.query.filter_by(id=current_user_id).first()
@@ -71,7 +71,7 @@ def get_user_profile():
 def update_user_profile():
     """Update current user's profile"""
     try:
-        current_user_id = get_jwt_identity()['user_id']
+        current_user_id = int(get_jwt_identity())
         data = request.get_json()
         
         name = data.get('name')
@@ -144,7 +144,7 @@ def update_user_profile():
 def update_user_settings():
     """Update user settings (notification preferences, etc.)"""
     try:
-        current_user_id = get_jwt_identity()['user_id']
+        current_user_id = int(get_jwt_identity())
         data = request.get_json()
         
         email_notifications = data.get('emailNotifications')
@@ -206,7 +206,7 @@ def update_user_settings():
 def get_user_settings():
     """Get current user's settings"""
     try:
-        current_user_id = get_jwt_identity()['user_id']
+        current_user_id = int(get_jwt_identity())
         
         # Find user settings
         settings = UserSettings.query.filter_by(user_id=current_user_id).first()
@@ -240,7 +240,7 @@ def get_user_settings():
 def change_password():
     """Change user's password"""
     try:
-        current_user_id = get_jwt_identity()['user_id']
+        current_user_id = int(get_jwt_identity())
         data = request.get_json()
         
         current_password = data.get('currentPassword')
@@ -286,7 +286,7 @@ def change_password():
 def delete_account():
     """Delete user account (soft delete)"""
     try:
-        current_user_id = get_jwt_identity()['user_id']
+        current_user_id = int(get_jwt_identity())
         
         # Soft delete - mark as deleted instead of actually removing
         user = User.query.filter_by(id=current_user_id).first()
@@ -310,7 +310,7 @@ def delete_account():
 def get_notifications():
     """Get user's notifications"""
     try:
-        current_user_id = get_jwt_identity()['user_id']
+        current_user_id = int(get_jwt_identity())
         
         notifications = Notification.query.filter_by(user_id=current_user_id)\
             .order_by(Notification.sent_at.desc())\
@@ -339,7 +339,7 @@ def get_notifications():
 def mark_notification_read(notification_id):
     """Mark notification as read"""
     try:
-        current_user_id = get_jwt_identity()['user_id']
+        current_user_id = int(get_jwt_identity())
         
         notification = Notification.query.filter_by(
             id=notification_id,

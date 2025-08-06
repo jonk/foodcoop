@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import db, ShiftPreference, User
 from datetime import datetime
+from scheduler import check_all_shifts
 
 shifts_bp = Blueprint('shifts', __name__)
 
@@ -10,7 +11,7 @@ shifts_bp = Blueprint('shifts', __name__)
 def get_shift_preferences():
     """Get all shift preferences for the authenticated user"""
     try:
-        current_user_id = get_jwt_identity()['user_id']
+        current_user_id = int(get_jwt_identity())
         
         # Get preferences for the current user
         user_preferences = ShiftPreference.query.filter_by(
@@ -43,7 +44,7 @@ def get_shift_preferences():
 def create_shift_preference():
     """Create a new shift preference"""
     try:
-        current_user_id = get_jwt_identity()['user_id']
+        current_user_id = int(get_jwt_identity())
         data = request.get_json()
         
         shift_type = data.get('shiftType')
@@ -111,7 +112,7 @@ def create_shift_preference():
 def update_shift_preference(preference_id):
     """Update an existing shift preference"""
     try:
-        current_user_id = get_jwt_identity()['user_id']
+        current_user_id = int(get_jwt_identity())
         data = request.get_json()
 
         # Find the preference and verify ownership
@@ -167,7 +168,7 @@ def update_shift_preference(preference_id):
 def delete_shift_preference(preference_id):
     """Delete a shift preference"""
     try:
-        current_user_id = get_jwt_identity()['user_id']
+        current_user_id = int(get_jwt_identity())
 
         # Find and verify ownership
         existing_preference = ShiftPreference.query.filter_by(
@@ -204,3 +205,17 @@ def delete_shift_preference(preference_id):
         db.session.rollback()
         print(f'Error deleting shift preference: {e}')
         return jsonify({'error': 'Failed to delete shift preference'}), 500 
+
+@shifts_bp.route('/check-shifts', methods=['GET'])
+@jwt_required()
+def check_shifts():
+    """Check for shifts"""
+    try:
+        current_user_id = int(get_jwt_identity())
+        shifts = check_all_shifts()
+        return jsonify({
+            'shifts': shifts
+        })
+    except Exception as e:
+        print(f'Error checking shifts: {e}')
+        return jsonify({'error': 'Failed to check shifts'}), 500
