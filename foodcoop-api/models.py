@@ -2,6 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from sqlalchemy.dialects.postgresql import ARRAY, JSON
 
+
 # Create db instance that will be initialized in app.py
 db = SQLAlchemy()
 
