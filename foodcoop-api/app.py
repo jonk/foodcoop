@@ -21,7 +21,10 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = False  # 24 hours
 
 # Initialize extensions
 jwt = JWTManager(app)
-CORS(app, origins=[os.getenv('FRONTEND_URL', 'http://localhost:5173')], supports_credentials=True)
+CORS(app, origins=[
+    os.getenv('FRONTEND_URL', 'http://localhost:5173'),
+    'http://108.14.120.169'
+], supports_credentials=True)
 
 # Import models and routes after db initialization
 from models import db as models_db, User, UserSettings, ShiftPreference, Notification, AuditLog, AvailableShift
