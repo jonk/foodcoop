@@ -56,6 +56,15 @@ def main():
                     if success:
                         emails_sent += 1
                         print(f"[{datetime.now()}] Sent notification to {user['name']} ({email_to_use}) for {len(user_matches)} matches")
+                        
+                        # Mark all matched preferences as already_emailed
+                        from models import ShiftPreference
+                        for match in user_matches:
+                            preference_id = match['matched_preference']['id']
+                            preference = ShiftPreference.query.get(preference_id)
+                            if preference:
+                                preference.already_emailed = True
+                        db.session.commit()
                     else:
                         print(f"[{datetime.now()}] Failed to send notification to {user['name']} ({email_to_use})")
                 else:

@@ -96,7 +96,7 @@ def send_email(subject, body):
     # Email configuration – update these with your own details.
     sender_email = "jonk1993@gmail.com"
     receiver_email = "jonk1993@gmail.com"  # Could be the same as sender
-    password = ""           # For Gmail, consider using an App Password
+    password = "wvxp wdft ttwx pwub"           # For Gmail, consider using an App Password
 
     # Set up the MIME message.
     msg = MIMEMultipart()

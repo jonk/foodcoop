@@ -148,6 +148,8 @@ def update_shift_preference(preference_id):
         if 'isActive' in data:
             existing_preference.is_active = data['isActive']
         
+        # Reset already_emailed flag when preference is updated so they can get new notifications
+        existing_preference.already_emailed = False
         existing_preference.updated_at = datetime.utcnow()
         db.session.commit()
 
@@ -342,11 +344,12 @@ def check_all_users_shift_preferences():
             *login(requests.Session(), os.getenv('COOP_USERNAME'), os.getenv('COOP_PASSWORD'))
         )
         
-        # Get all active users with their shift preferences
+        # Get all active users with their shift preferences that haven't been emailed yet
         users_with_preferences = db.session.query(User).join(ShiftPreference).filter(
             User.is_active == True,
             User.deleted_at.is_(None),
-            ShiftPreference.is_active == True
+            ShiftPreference.is_active == True,
+            ShiftPreference.already_emailed == False
         ).distinct().all()
         
         matches = []
@@ -356,7 +359,7 @@ def check_all_users_shift_preferences():
             
             # Check each preference for this user
             for preference in user.shift_preferences:
-                if not preference.is_active:
+                if not preference.is_active or preference.already_emailed:
                     continue
                     
                 preference_matches = []

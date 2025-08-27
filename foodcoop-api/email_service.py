@@ -9,6 +9,7 @@ load_dotenv()
 def send_shift_notification_email(to_email, user_name, matches):
     """Send email notification about available shifts"""
     try:
+        base_url = os.getenv('COOP_BASE_URL', 'https://members.foodcoop.com')
         # SMTP configuration
         smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
         smtp_port = int(os.getenv('SMTP_PORT', 587))
