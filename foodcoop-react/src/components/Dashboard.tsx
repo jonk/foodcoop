@@ -579,7 +579,7 @@ function Dashboard() {
                   <option value="">Select a shift type</option>
                   <option>-- All committees' --</option>
                   <option>🥕 Carrot 🥕</option>
-                  <option>Receiving: Lifting 🚚</option>
+                  <option>Lifting 🚚</option>
                   <option>Receiving: Stocking 📦</option>
                   <option>Bathroom Cleaning Plus 🚽</option>
                   <option>Cart Return and Sidewalk Maintenance 🛒</option>
@@ -608,7 +608,7 @@ function Dashboard() {
                   <option>** Receiving: Beer Stocking 🍺</option>
                   <option>Receiving: Bread Stocking 🍞</option>
                   <option>Receiving: Bulk Lifting 🫘</option>
-                  <option>Receiving: Dairy Lifting 🥛</option>
+                  <option>Dairy Lifting 🥛</option>
                   <option>Receiving: Health and Beauty Support 🧴</option>
                   <option>Receiving: Meat Processing and Lifting 🍖</option>
                   <option>Receiving: Produce Lifting and Stocking 🥦</option>

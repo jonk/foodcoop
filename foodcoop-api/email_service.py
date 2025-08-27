@@ -1,6 +1,6 @@
 import smtplib
-from email.mime.text import MimeText
-from email.mime.multipart import MimeMultipart
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import os
 from dotenv import load_dotenv
 
@@ -22,7 +22,7 @@ def send_shift_notification_email(to_email, user_name, matches):
             return False
 
         # Create message
-        msg = MimeMultipart('alternative')
+        msg = MIMEMultipart('alternative')
         msg['Subject'] = f'Food Coop Shifts Available - {len(matches)} matches found!'
         msg['From'] = from_email
         msg['To'] = to_email
@@ -76,8 +76,8 @@ Food Coop Shift Notification System
         """
 
         # Attach parts
-        text_part = MimeText(text_content, 'plain')
-        html_part = MimeText(html_content, 'html')
+        text_part = MIMEText(text_content, 'plain')
+        html_part = MIMEText(html_content, 'html')
         msg.attach(text_part)
         msg.attach(html_part)
 

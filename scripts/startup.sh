@@ -39,7 +39,7 @@ screen -S foodcoop -p 0 -X title "postgres"
 # Set up cron job for shift checking
 echo "Setting up cron job for shift checking..."
 API_DIR="/Users/jonkalfayan/Developer/foodcoop/foodcoop-api"
-(crontab -l 2>/dev/null | grep -v check_shifts_cron.py; echo "*/15 * * * * cd $API_DIR && python3 check_shifts_cron.py >> /tmp/foodcoop_shifts.log 2>&1") | crontab -
+(crontab -l 2>/dev/null | grep -v check_shifts_cron.py; echo "* * * * * cd $API_DIR && /Users/jonkalfayan/Developer/foodcoop/.venv/bin/python3 check_shifts_cron.py >> /tmp/foodcoop_shifts.log 2>&1") | crontab -
 echo "Cron job added successfully!"
 
 echo ""
